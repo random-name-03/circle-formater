@@ -1,17 +1,8 @@
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
-
-// string muss als referenz mitgegeben werden!
-std::string get_element(std::string &line, char element_separator) {
-  int part_end = line.find(element_separator, 0);
-  std::string element_part = line.substr(0, part_end);
-  line.erase(0, part_end + 1);
-  return element_part;
-}
 
 int main() {
   std::ifstream file("/home/dev/codium/circle-formater/data/edifact.data");
@@ -27,24 +18,38 @@ int main() {
     lines.push_back(line);
   }
 
-  // char component_separator = lines[0][3]; //:
-  char element_separator = lines[0][4]; //+
-  // char decimal_point = lines[0][5];       // .
-  // char release_indicator = lines[0][6];   // ?
-  char segment_terminator = lines[0][8]; //'
+  std::map<std::string, char> descriptors;
+  descriptors.insert({"component_separator", lines[0][3]});
+  descriptors.insert({"element_separator", lines[0][4]});
+  descriptors.insert({"decimal_point", lines[0][5]});
+  descriptors.insert({"release_indicator", lines[0][6]});
+  descriptors.insert({"space", lines[0][7]});
+  descriptors.insert({"segment_terminator", lines[0][8]});
 
-  std::map<int, std::map<std::string, std::string>> edifact_data;
+  std::map<std::string, std::vector<std::string>> edifact_data;
 
   for (size_t i = 1; i < lines.size(); ++i) {
-
-    std::map<std::string, std::string> line_data;
-
     std::string line = lines[i];
-    // TODO: func extension to loop through until segment_terminator
-    //      while (!std::find(0, 1, segment_terminator)) {
-    line_data.insert({"elements", get_element(line, element_separator)});
+    std::vector<std::string> line_data;
 
-    edifact_data.insert({i, line_data});
-    std::cout << line << "\n";
+    while (line.length() > 1) {
+      int part_end = line.find(descriptors["element_separator"], 0);
+      if (part_end < 0) {
+        part_end = line.length() - 1;
+      }
+      std::string element_part = line.substr(0, part_end);
+      line.erase(0, part_end + 1);
+      line_data.push_back(element_part);
+    }
+
+    edifact_data.insert({line_data[0], line_data});
+  }
+
+  for (const auto &[key, vec] : edifact_data) { 
+    std::cout << key << ": ";
+    for (const auto &value : vec) {
+      std::cout << value << " ";
+    }
+    std::cout << "\n";
   }
 }
